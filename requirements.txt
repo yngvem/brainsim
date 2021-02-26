@@ -1,0 +1,14 @@
+setuptools
+sphinx
+sphinx_rtd_theme
+sphinx_gallery
+numpydoc
+pytest
+pytest-cov
+pytest-randomly
+coverage
+flake8
+black
+isort
+bump2version
+removestar
