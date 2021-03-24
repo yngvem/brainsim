@@ -6,7 +6,7 @@ Install FEniCS and MSHR. Then, download this repository and run
 
 .. code:: bash
 
-    python setup.py install
+    pip install -e .
 
 Alternatively, you can use the development container plugin of VSCode.
 
