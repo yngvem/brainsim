@@ -1,4 +1,7 @@
+from contextlib import contextmanager
+from pathlib import Path
 import numpy as np
+import SVMTK as svmtk
 
 
 def transform_coords(coords, transform):
@@ -45,3 +48,24 @@ def get_surface_ras_to_image_coordinates_transform(surface_metadata, image_nii):
     translation_matrix[:3, -1] = surface_metadata['cras']
 
     return np.linalg.inv(image_nii.affine)@translation_matrix
+
+
+@contextmanager
+def process_surface(input_file, output_file):
+    surface = svmtk.Surface(str(input_file))
+    yield surface
+    surface.save(str(output_file))
+
+
+
+def create_volume_mesh(input, output_file, resolution=16):
+    if Path(input).is_dir():
+        surface = [svmtk.Surface(str(p)) for p in input.iterdir()]
+    else:
+        surface = svmtk.Surface(str(input))
+
+    domain = svmtk.Domain(surface)
+    domain.create_mesh(resolution)
+
+    domain.save(str(output_file))
+
