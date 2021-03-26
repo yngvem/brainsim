@@ -25,6 +25,7 @@ parser.add_argument(
 )
 parser.add_argument("--function_space", type=str, default="DG")
 parser.add_argument("--function_degree", type=int, default=0)
+parser.add_argument("--hdf5_name", type=str, default=None)
 
 args = parser.parse_args()
 
@@ -56,6 +57,16 @@ image_coords = mesh_tools.transform_coords(xyz, transformation_matrix)
 f.vector()[:] = Gd_interpolator(image_coords)
 
 # Save output
-output_file = pde.File(args.output)
-output_file << f
+if args.output.endswith(".h5") and args.hdf5_name is not None:
+    output_file = pde.HDF5File(mesh.mpi_comm(), args.output, "w")
+
+    hdf5_name = args.hdf5_name
+    if not hdf5_name.startswith("/"):
+        hdf5_name = f"/{hdf5_name}"
+    output_file.write(f, hdf5_name)
+elif args.output.endswith(".h5"): 
+    raise ValueError("Must specify --hdf5_name for hdf5 files")
+else:
+    output_file = pde.File(args.output)
+    output_file << f
 
