@@ -9,7 +9,7 @@ from brainsim.image_tools import create_image_interpolator
 parser = argparse.ArgumentParser()
 parser.add_argument("mesh", type=str, help="FEniCS mesh file")
 parser.add_argument("image", type=str, help="Nifti file to get transformation matrix from")
-parser.add_argument("surface", type=str, help="Freesurfer surface file to get shift of mesh")
+parser.add_argument("surface", type=str, help="Freesurfer surface file to get shift of mesh (e.g. lh.pial)")
 parser.add_argument("output", type=str, help="File to save the function to (e.g. shear_modulus.pvd)")
 parser.add_argument(
     "--interpolation_method",
