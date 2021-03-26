@@ -30,7 +30,7 @@ parser.add_argument("--hdf5_name", type=str, default=None)
 args = parser.parse_args()
 
 # Load data
-Gd = nib.load(args.image)
+nii_img = nib.load(args.image)
 points, faces, metadata = nib.freesurfer.read_geometry(args.surface, read_metadata=True)
 mesh = pde.Mesh(args.mesh) 
 
@@ -38,8 +38,8 @@ mesh = pde.Mesh(args.mesh)
 # Setup function
 V = pde.FunctionSpace(mesh, args.function_space, args.function_degree) 
 f = pde.Function(V)
-Gd_interpolator = create_image_interpolator(
-    Gd.get_fdata(),
+nii_interpolator = create_image_interpolator(
+    nii_img.get_fdata(),
     method=args.interpolation_method,
     out_of_bounds=args.out_of_bounds
 )
@@ -52,9 +52,9 @@ xyz = V.tabulate_dof_coordinates()
 xyz = xyz.reshape((num_dofs_local, -1))
 
 # Interpolate image onto mesh coordinates
-transformation_matrix = mesh_tools.get_surface_ras_to_image_coordinates_transform(metadata, Gd)
+transformation_matrix = mesh_tools.get_surface_ras_to_image_coordinates_transform(metadata, nii_img)
 image_coords = mesh_tools.transform_coords(xyz, transformation_matrix)
-f.vector()[:] = Gd_interpolator(image_coords)
+f.vector()[:] = nii_interpolator(image_coords)
 
 # Save output
 if args.output.endswith(".h5") and args.hdf5_name is not None:
