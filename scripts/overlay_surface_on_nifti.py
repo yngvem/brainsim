@@ -59,6 +59,7 @@ def plane_cutter(plotter, image, volume, extract_edges=True,
                  tubing=False, origin_translation=True,
                  outline_translation=False, implicit=True,
                  normal_rotation=True, transformations=None, **kwargs):
+    # Modified from the pyvista plane_cutter filter
     from pyvista.utilities import generate_plane
     image_cutter = vtk.vtkCutter()
     volume_cutter = vtk.vtkCutter()
@@ -105,13 +106,6 @@ def plane_cutter(plotter, image, volume, extract_edges=True,
                             normal_rotation=normal_rotation)
     plotter.add_mesh(image_sliced_mesh, **kwargs)
     plotter.add_mesh(volume_sliced_mesh, **kwargs)
-
-def my_plane_func(normal, origin):
-    print(normal, origin)
-    mesh_slice = mesh.slice(normal=normal, origin=origin)
-    image_slice = image.slice(normal=normal, origin=origin)
-    plotter.add_mesh(mesh_slice)
-    plotter.add_mesh(image_slice)
 
 
 plotter = pv.Plotter()
