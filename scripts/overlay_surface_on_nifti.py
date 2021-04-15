@@ -1,4 +1,15 @@
 import argparse
+
+# Parse arguments
+parser = argparse.ArgumentParser()
+parser.add_argument("image", type=str, help="Nifti file to get transformation matrix from")
+parser.add_argument("--surface", type=str, help="Freesurfer surface file to get shift of mesh (e.g. lh.pial)")
+parser.add_argument("--mesh", type=str, help="FEniCS mesh file, optional, if not supplied, then the surface file is used")
+
+
+args = parser.parse_args()
+
+# Start script and imports after parsing arguments since then we can get the help faster
 import vtk
 import pyvista as pv
 import nibabel as nib
@@ -7,22 +18,11 @@ import brainsim.mesh_tools as mesh_tools
 import brainsim.vtk_utils as vtk_utils
 import meshio
 
-
-# Parse arguments
-parser = argparse.ArgumentParser()
-parser.add_argument("image", type=str, help="Nifti file to get transformation matrix from")
-parser.add_argument("surface", type=str, help="Freesurfer surface file to get shift of mesh (e.g. lh.pial)")
-parser.add_argument("--mesh", type=str, help="FEniCS mesh file, optional, if not supplied, then the surface file is used")
-
-
-args = parser.parse_args()
-
 nii_img = nib.load(args.image)
-points, faces, metadata = nib.freesurfer.read_geometry(args.surface, read_metadata=True)
-transformation_matrix = mesh_tools.get_surface_ras_to_image_coordinates_transform(metadata, nii_img)
+transformation_matrix = mesh_tools.get_surface_ras_to_image_coordinates_transform(nii_img)
 
 
-if args.mesh is not None:
+if args.mesh is not None and args.surface is None:
     fem_mesh = meshio.read(args.mesh)
     points = fem_mesh.points
     faces = fem_mesh.cells[0][1]
@@ -40,13 +40,16 @@ if args.mesh is not None:
         mesh_type,
         mesh_tools.transform_coords(points, transformation_matrix)
     )
-else:
+elif args.surface is not None and args.mesh is None:
+    points, faces, metadata = nib.freesurfer.read_geometry(args.surface, read_metadata=True)
     mesh = pv.UnstructuredGrid(
         np.concatenate([np.ones_like(faces[:, :1])*3, faces], axis=1),
         np.ones(len(faces), dtype=np.uint8)*vtk.VTK_TRIANGLE,
         mesh_tools.transform_coords(points, transformation_matrix)
     )
     extract_edges = False
+else:
+    raise ValueError("Specify either surface file or mesh file")
 
 
 image = vtk_utils.to_pyvista_grid(nii_img.get_fdata())

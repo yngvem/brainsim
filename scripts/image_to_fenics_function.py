@@ -1,15 +1,9 @@
-import dolfin as pde
 import argparse
-import nibabel as nib
-import brainsim.mesh_tools as mesh_tools
-from brainsim.image_tools import create_image_interpolator
-
 
 # Parse arguments
 parser = argparse.ArgumentParser()
 parser.add_argument("mesh", type=str, help="FEniCS mesh file")
 parser.add_argument("image", type=str, help="Nifti file to get transformation matrix from")
-parser.add_argument("surface", type=str, help="Freesurfer surface file to get shift of mesh (e.g. lh.pial)")
 parser.add_argument("output", type=str, help="File to save the function to (e.g. shear_modulus.pvd)")
 parser.add_argument(
     "--interpolation_method",
@@ -29,9 +23,17 @@ parser.add_argument("--hdf5_name", type=str, default=None)
 
 args = parser.parse_args()
 
+
+# Start script after parsing arguments since importing FEniCS is slow
+# This allows us to get help without waiting for fenics
+import dolfin as pde
+import nibabel as nib
+import brainsim.mesh_tools as mesh_tools
+from brainsim.image_tools import create_image_interpolator
+
+
 # Load data
 nii_img = nib.load(args.image)
-points, faces, metadata = nib.freesurfer.read_geometry(args.surface, read_metadata=True)
 mesh = pde.Mesh(args.mesh) 
 
 
@@ -52,7 +54,7 @@ xyz = V.tabulate_dof_coordinates()
 xyz = xyz.reshape((num_dofs_local, -1))
 
 # Interpolate image onto mesh coordinates
-transformation_matrix = mesh_tools.get_surface_ras_to_image_coordinates_transform(metadata, nii_img)
+transformation_matrix = mesh_tools.get_surface_ras_to_image_coordinates_transform(nii_img)
 image_coords = mesh_tools.transform_coords(xyz, transformation_matrix)
 f.vector()[:] = nii_interpolator(image_coords)
 
