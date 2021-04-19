@@ -6,6 +6,12 @@ parser.add_argument("mesh", type=str, help="FEniCS mesh file")
 parser.add_argument("image", type=str, help="Nifti file to get transformation matrix from")
 parser.add_argument("output", type=str, help="File to save the function to (e.g. shear_modulus.pvd)")
 parser.add_argument(
+    "--mesh_surface",
+    type=str,
+    help=("The a surface mesh used to generate the 3D FEniCS mesh. "
+          "If supplied, it is used to correctly place the mesh in the RAS coordinate system.")
+)
+parser.add_argument(
     "--interpolation_method",
     type=str,
     default="linear",
@@ -35,6 +41,10 @@ from brainsim.image_tools import create_image_interpolator
 # Load data
 nii_img = nib.load(args.image)
 mesh = pde.Mesh(args.mesh) 
+if args.mesh_surface is not None:
+    points, faces, metadata = nib.freesurfer.read_geometry(args.mesh_surface, read_metadata=True)
+else:
+    metadata = None
 
 
 # Setup function
@@ -46,7 +56,6 @@ nii_interpolator = create_image_interpolator(
     out_of_bounds=args.out_of_bounds
 )
 
-
 # Get coordinates where function must be evaluated
 imap = V.dofmap().index_map()
 num_dofs_local = (imap.local_range()[1] - imap.local_range()[0])
@@ -54,7 +63,7 @@ xyz = V.tabulate_dof_coordinates()
 xyz = xyz.reshape((num_dofs_local, -1))
 
 # Interpolate image onto mesh coordinates
-transformation_matrix = mesh_tools.get_surface_ras_to_image_coordinates_transform(nii_img)
+transformation_matrix = mesh_tools.get_surface_ras_to_image_coordinates_transform(nii_img, surface_metadata=metadata)
 image_coords = mesh_tools.transform_coords(xyz, transformation_matrix)
 f.vector()[:] = nii_interpolator(image_coords)
 

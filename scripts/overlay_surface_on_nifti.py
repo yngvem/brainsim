@@ -5,6 +5,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("image", type=str, help="Nifti file to get transformation matrix from")
 parser.add_argument("--surface", type=str, help="Freesurfer surface file to get shift of mesh (e.g. lh.pial)")
 parser.add_argument("--mesh", type=str, help="FEniCS mesh file, optional, if not supplied, then the surface file is used")
+parser.add_argument("--cmap", type=str, help="Which colormap to use", cmap=cmap)
 
 
 args = parser.parse_args()
@@ -19,10 +20,14 @@ import brainsim.vtk_utils as vtk_utils
 import meshio
 
 nii_img = nib.load(args.image)
-transformation_matrix = mesh_tools.get_surface_ras_to_image_coordinates_transform(nii_img)
+if args.surface is not None:
+    points, faces, metadata = nib.freesurfer.read_geometry(args.surface, read_metadata=True)
+else:
+    metadata = None
+transformation_matrix = mesh_tools.get_surface_ras_to_image_coordinates_transform(nii_img, metadata)
 
 
-if args.mesh is not None and args.surface is None:
+if args.mesh is not None:
     fem_mesh = meshio.read(args.mesh)
     points = fem_mesh.points
     faces = fem_mesh.cells[0][1]
@@ -61,7 +66,8 @@ def plane_cutter(plotter, image, volume, extract_edges=True,
                  widget_color=None, assign_to_axis=None,
                  tubing=False, origin_translation=True,
                  outline_translation=False, implicit=True,
-                 normal_rotation=True, transformations=None, **kwargs):
+                 normal_rotation=True, transformations=None, 
+                 cmap="gray", **kwargs):
     # Modified from the pyvista plane_cutter filter
     from pyvista.utilities import generate_plane
     image_cutter = vtk.vtkCutter()
@@ -107,10 +113,10 @@ def plane_cutter(plotter, image, volume, extract_edges=True,
                             outline_translation=outline_translation,
                             implicit=implicit, origin=volume.center,
                             normal_rotation=normal_rotation)
-    plotter.add_mesh(image_sliced_mesh, **kwargs)
+    plotter.add_mesh(image_sliced_mesh, cmap=cmap, **kwargs)
     plotter.add_mesh(volume_sliced_mesh, **kwargs)
 
 
 plotter = pv.Plotter()
-plane_cutter(plotter, image, mesh, extract_edges=extract_edges)
+plane_cutter(plotter, image, mesh, extract_edges=extract_edges, cmap=args.cmap)
 plotter.show()
