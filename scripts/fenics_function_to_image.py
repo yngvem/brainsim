@@ -29,6 +29,7 @@ parser.add_argument(
     help=("The a surface mesh used to generate the 3D FEniCS mesh. "
           "If supplied, it is used to correctly place the mesh in the RAS coordinate system.")
 )
+parser.add_argument('--allow_full_mask', dest='allow_full_mask', default=False, action='store_true')
 
 args = parser.parse_args()
 
@@ -94,6 +95,8 @@ else:
     fraction_of_image = num_voxels_in_mask / np.product(output_data.shape)
     print(f"Using mask, evaluating {fraction_of_image:.0%} of all image voxels")
     print(f"There are {num_voxels_in_mask} voxels in the mask")
+    if fraction_of_image > 1 - 1e-10 and not args.allow_full_mask:
+        raise ValueError("The supplied mask covers the whole image so you are probably doing something wrong. To allow for this behaviour, run with --allow_full_mask")
 
 
 progress = tqdm(total=num_voxels_in_mask)
